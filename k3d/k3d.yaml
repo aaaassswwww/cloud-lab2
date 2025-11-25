@@ -1,0 +1,21 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: k3d
+servers: 1
+agents: 2
+registries:
+  create: 
+    name: k3d-registry
+  config: |
+    mirrors:
+      "docker.io":
+        endpoint:
+          - "https://docker.1panel.live"
+          - "https://hub.1panel.dev"
+          - "https://docker.367231.xyz"
+          - "https://hub1.nat.tf"
+          - "https://hub2.nat.tf"
+          - "https://docker.1ms.run"
+          - "https://docker.hlmirror.com"
+          - "https://docker.fnnas.com"

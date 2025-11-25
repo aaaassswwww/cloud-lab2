@@ -1,0 +1,28 @@
+kitex:
+  service: "product"
+  address: ":8881"
+  metrics_port: ":9991"
+  log_level: info
+  log_file_name: "log/kitex.log"
+  log_max_size: 10
+  log_max_age: 3
+  log_max_backups: 50
+
+mysql:
+  dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+  username: root
+  password: root
+  address: 127.0.0.1
+  port: 13306
+  database: product
+
+redis:
+  address: "127.0.0.1:16379"
+  username: ""
+  password: ""
+  db: 0
+
+rate_limiter:
+  enabled: true
+  bucket_size: 10
+  rate: 10
