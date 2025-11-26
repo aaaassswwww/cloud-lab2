@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: product-conf
+data:
+  conf.yaml: |
+    kitex:
+      service: "product"
+      address: ":8881"
+      metrics_port: ":9991"
+      log_level: info
+    mysql:
+      dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+      username: gomall
+      password: gomall123
+      address: mysql
+      port: 3306
+      database: product
+    redis:
+      address: "redis:6379"
+      username: ""
+      password: ""
+      db: 0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  labels:
+    app: product
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+    spec:
+      containers:
+      - name: product
+        image: buwandocker/product:lab2
+        ports:
+        - containerPort: 8881
+        env:
+        - name: GO_ENV
+          value: "dev"
+        volumeMounts:
+        - name: conf
+          mountPath: /app/conf/dev/conf.yaml
+          subPath: conf.yaml
+      volumes:
+      - name: conf
+        configMap:
+          name: product-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  labels:
+    app: product
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8881
+    targetPort: 8881
+    protocol: TCP
+    name: http
+  selector:
+    app: product

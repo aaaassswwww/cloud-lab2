@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-conf
+data:
+  conf.yaml: |
+    kitex:
+      service: "payment"
+      address: ":8886"
+      metrics_port: ":9996"
+      log_level: info
+    mysql:
+      dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+      username: gomall
+      password: gomall123
+      address: mysql
+      port: 3306
+      database: payment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  labels:
+    app: payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment
+  template:
+    metadata:
+      labels:
+        app: payment
+    spec:
+      containers:
+      - name: payment
+        image: buwandocker/payment:lab2
+        ports:
+        - containerPort: 8886
+        env:
+        - name: GO_ENV
+          value: "dev"
+        volumeMounts:
+        - name: conf
+          mountPath: /app/conf/dev/conf.yaml
+          subPath: conf.yaml
+      volumes:
+      - name: conf
+        configMap:
+          name: payment-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  labels:
+    app: payment
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8886
+    targetPort: 8886
+    protocol: TCP
+    name: http
+  selector:
+    app: payment

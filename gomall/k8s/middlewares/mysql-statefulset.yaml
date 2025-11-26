@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  serviceName: mysql-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root123"
+        - name: MYSQL_DATABASE
+          value: "gomall"
+        - name: MYSQL_USER
+          value: "gomall"
+        - name: MYSQL_PASSWORD
+          value: "gomall123"
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: mysql-init-sql
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          subPath: init.sql
+      volumes:
+      - name: mysql-init-sql
+        configMap:
+          name: mysql-init-sql
+          items:
+          - key: init.sql
+            path: init.sql
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+  updateStrategy:
+    type: RollingUpdate

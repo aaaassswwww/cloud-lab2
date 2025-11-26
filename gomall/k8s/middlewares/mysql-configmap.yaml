@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-sql
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS gomall DEFAULT CHARACTER SET = 'utf8mb4' DEFAULT COLLATE = 'utf8mb4_general_ci';
+    CREATE USER IF NOT EXISTS 'gomall'@'%' IDENTIFIED BY 'gomall123';
+    GRANT ALL PRIVILEGES ON gomall.* TO 'gomall'@'%';
+    FLUSH PRIVILEGES;

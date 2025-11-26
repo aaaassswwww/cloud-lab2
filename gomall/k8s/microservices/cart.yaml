@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cart-conf
+data:
+  conf.yaml: |
+    kitex:
+      service: "cart"
+      address: ":8883"
+      metrics_port: ":9993"
+      log_level: info
+    mysql:
+      dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+      username: gomall
+      password: gomall123
+      address: mysql
+      port: 3306
+      database: cart
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+  labels:
+    app: cart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cart
+  template:
+    metadata:
+      labels:
+        app: cart
+    spec:
+      containers:
+      - name: cart
+        image: buwandocker/cart:lab2
+        ports:
+        - containerPort: 8883
+        env:
+        - name: GO_ENV
+          value: "dev"
+        volumeMounts:
+        - name: conf
+          mountPath: /app/conf/dev/conf.yaml
+          subPath: conf.yaml
+      volumes:
+      - name: conf
+        configMap:
+          name: cart-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart
+  labels:
+    app: cart
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8883
+    targetPort: 8883
+    protocol: TCP
+    name: http
+  selector:
+    app: cart
