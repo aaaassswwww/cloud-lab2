@@ -21,7 +21,7 @@
 在集群中应用这些文件
 
 ```bash
-minikube kubectl -- apply -f gomall/k8s/middlewares; 
+minikube kubectl -- apply -f gomall/k8s/middlewares
 ```
 
 ![image-20251126134120511](images\image-20251126134120511.png)
@@ -61,15 +61,7 @@ minikube kubectl -- apply -f gomall/k8s/middlewares;
 在集群中应用微服务清单
 
 ```bash
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-pv-pvc.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-configmap.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-headless-service.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-service.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-statefulset.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\redis-deployment.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\redis-service.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-deployment.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-service.yaml
+minikube kubectl -- apply -f gomall\k8s\microservices
 ```
 
 ![image-20251126175135535](images\image-20251126175135535.png)
@@ -80,33 +72,34 @@ minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-service.yaml
 
 ![image-20251126181835767](images\image-20251126181835767.png)
 
-运行` minikube kubectl -- logs cart-79f7f79fd9-rcchw`查看cart 日志，发现MySQL 还没有为 cart 等服务创建数据库并且授予 gomall 对这些数据库的权限。因为 MySQL 数据存储已被 PV 持久化，重新应用 ConfigMap 不会重新初始化，所以在运行中的 MySQL 实例里手动创建数据库并授权。
+运行` minikube kubectl -- logs cart-79f7f79fd9-rcchw`查看cart 日志，发现MySQL 还没有为 cart 等服务创建数据库并且授予 gomall 对这些数据库的权限。
 
-```bash
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS cart DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS product DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS `user` DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS `order` DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS payment DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE USER IF NOT EXISTS 'gomall'@'%' IDENTIFIED BY 'gomall123';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON cart.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON product.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON `user`.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON `order`.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON payment.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "FLUSH PRIVILEGES;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e 'CREATE DATABASE IF NOT EXISTS `order` DEFAULT CHARACTER SET utf8mb4;'
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e 'GRANT ALL PRIVILEGES ON `order`.* TO ''gomall''@''%'';'
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e 'FLUSH PRIVILEGES;';
-minikube kubectl -- rollout restart deployment cart product order payment user
-```
+优化一下
+
+- 添加 mysql-init-job.yaml，等待 MySQL 就绪并执行创建数据库与授权的 SQL。
+
+- 添加 mysql-secret.yaml 保存 MySQL 密码
 
 现在可以了
 
-![image-20251126182329937](images\image-20251126182329937.png)
+![image-20251127222625017](images\image-20251127222625017.png)
 
 运行`kubectl port-forward service/frontend 8080:8080`
 
 发现可以正常访问在 Kubernetes 集群中运行的 gomall 系统。
 
 ![image-20251126182524577](images\image-20251126182524577.png)
+
+```bash
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-secret.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-pv-pvc.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-configmap.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-headless-service.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-statefulset.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\redis-deployment.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\redis-service.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-deployment.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-service.yaml;
+```
+在Mysql就绪后
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-init-job.yaml
