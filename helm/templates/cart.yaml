@@ -1,0 +1,80 @@
+{{- if .Values.cart.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cart-conf
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cart
+data:
+  conf.yaml: |
+    kitex:
+      service: "{{ .Values.cart.kitex.service }}"
+      address: "{{ .Values.cart.kitex.address }}"
+      metrics_port: "{{ .Values.cart.kitex.metrics_port }}"
+      log_level: {{ .Values.cart.kitex.log_level }}
+    mysql:
+      dsn: "{{ .Values.cart.mysql.dsn }}"
+      username: {{ .Values.cart.mysql.username | quote }}
+      password: {{ .Values.cart.mysql.password | quote }}
+      address: {{ .Values.cart.mysql.address | quote }}
+      port: {{ .Values.cart.mysql.port }}
+      database: {{ .Values.cart.mysql.database | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cart
+spec:
+  replicas: {{ .Values.cart.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "gomall.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: cart
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "gomall.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: cart
+    spec:
+      containers:
+      - name: cart
+        image: "{{ .Values.cart.image.repository }}:{{ .Values.cart.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.cart.service.targetPort }}
+        env:
+        - name: GO_ENV
+          value: {{ .Values.global.goEnv | quote }}
+        volumeMounts:
+        - name: conf
+          mountPath: /app/conf/{{ .Values.global.goEnv }}/conf.yaml
+          subPath: conf.yaml
+      volumes:
+      - name: conf
+        configMap:
+          name: cart-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cart
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.cart.service.port }}
+    targetPort: {{ .Values.cart.service.targetPort }}
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: {{ include "gomall.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: cart
+{{- end }}

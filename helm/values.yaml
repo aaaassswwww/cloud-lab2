@@ -1,0 +1,186 @@
+global:
+  namespace: default
+  goEnv: "dev"
+
+
+# Frontend Service
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: buwandocker/frontend
+    tag: lab2
+  service:
+    port: 8080
+    targetPort: 8080
+  hertz:
+    address: ":8080"
+    metrics_port: 8090
+    enable_pprof: false
+    enable_gzip: true
+    enable_access_log: true
+    log_level: "info"
+  redis:
+    address: "redis:6379"
+    username: ""
+    password: ""
+    db: 0
+  session_secret: "fudan2025"
+
+# Order Service
+order:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: buwandocker/order
+    tag: lab2
+  service:
+    port: 8885
+    targetPort: 8885
+  kitex:
+    service: "order"
+    address: ":8885"
+    metrics_port: ":9995"
+    log_level: "info"
+  mysql:
+    dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+    username: "gomall"
+    password: "gomall123"
+    address: "mysql"
+    port: 3306
+    database: "order"
+  redis:
+    address: "redis:6379"
+    username: ""
+    password: ""
+    db: 0
+
+# Payment Service
+payment:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: buwandocker/payment
+    tag: lab2
+  service:
+    port: 8886
+    targetPort: 8886
+  kitex:
+    service: "payment"
+    address: ":8886"
+    metrics_port: ":9996"
+    log_level: "info"
+  mysql:
+    dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+    username: "gomall"
+    password: "gomall123"
+    address: "mysql"
+    port: 3306
+    database: "payment"
+
+# Product Service
+product:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: buwandocker/product
+    tag: lab2
+  service:
+    port: 8881
+    targetPort: 8881
+  kitex:
+    service: "product"
+    address: ":8881"
+    metrics_port: ":9991"
+    log_level: "info"
+  mysql:
+    dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+    username: "gomall"
+    password: "gomall123"
+    address: "mysql"
+    port: 3306
+    database: "product"
+  redis:
+    address: "redis:6379"
+    username: ""
+    password: ""
+    db: 0
+
+# User Service
+user:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: buwandocker/user
+    tag: lab2
+  service:
+    port: 8882
+    targetPort: 8882
+  kitex:
+    service: "user"
+    address: ":8882"
+    metrics_port: ":9992"
+    log_level: "debug"
+  mysql:
+    dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+    username: "gomall"
+    password: "gomall123"
+    address: "mysql"
+    port: 3306
+    database: "user"
+
+# 原有的服务配置（保持不变）
+checkout:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: buwandocker/checkout
+    tag: lab2
+  service:
+    port: 8884
+    targetPort: 8884
+  kitex:
+    service: "checkout"
+    address: ":8884"
+    metrics_port: ":9994"
+    log_level: "info"
+  nats:
+    url: "nats://nats:4222"
+
+cart:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: buwandocker/cart
+    tag: lab2
+  service:
+    port: 8883
+    targetPort: 8883
+  kitex:
+    service: "cart"
+    address: ":8883"
+    metrics_port: ":9993"
+    log_level: "info"
+  mysql:
+    dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+    username: "gomall"
+    password: "gomall123"
+    address: "mysql"
+    port: 3306
+    database: "cart"
+
+email:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: buwandocker/email
+    tag: lab2
+  service:
+    port: 8888
+    targetPort: 8888
+  kitex:
+    service: "email"
+    address: ":8888"
+    log_level: "info"
+  nats:
+    url: "nats://nats:4222"
