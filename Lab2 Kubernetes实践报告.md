@@ -2,7 +2,7 @@
 
 ## 1.使用minikube搭建kubernetes集群
 
-运行`minikube start --drive=docker`
+运行`minikube start --driver=docker`
 
 ![image-20251126133920563](images\image-20251126133920563.png)
 
