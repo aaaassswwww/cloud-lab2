@@ -1,0 +1,85 @@
+{{- if .Values.product.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: product-conf
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: product
+data:
+  conf.yaml: |
+    kitex:
+      service: "{{ .Values.product.kitex.service }}"
+      address: "{{ .Values.product.kitex.address }}"
+      metrics_port: "{{ .Values.product.kitex.metrics_port }}"
+      log_level: {{ .Values.product.kitex.log_level }}
+    mysql:
+      dsn: "{{ .Values.product.mysql.dsn }}"
+      username: {{ .Values.product.mysql.username | quote }}
+      password: {{ .Values.product.mysql.password | quote }}
+      address: {{ .Values.product.mysql.address | quote }}
+      port: {{ .Values.product.mysql.port }}
+      database: {{ .Values.product.mysql.database | quote }}
+    redis:
+      address: "{{ .Values.product.redis.address }}"
+      username: "{{ .Values.product.redis.username }}"
+      password: "{{ .Values.product.redis.password }}"
+      db: {{ .Values.product.redis.db }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: product
+spec:
+  replicas: {{ .Values.product.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "gomall.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: product
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "gomall.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: product
+    spec:
+      containers:
+      - name: product
+        image: "{{ .Values.product.image.repository }}:{{ .Values.product.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.product.service.targetPort }}
+        env:
+        - name: GO_ENV
+          value: {{ .Values.global.goEnv | quote }}
+        volumeMounts:
+        - name: conf
+          mountPath: /app/conf/{{ .Values.global.goEnv }}/conf.yaml
+          subPath: conf.yaml
+      volumes:
+      - name: conf
+        configMap:
+          name: product-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: product
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.product.service.port }}
+    targetPort: {{ .Values.product.service.targetPort }}
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: {{ include "gomall.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: product
+{{- end }}

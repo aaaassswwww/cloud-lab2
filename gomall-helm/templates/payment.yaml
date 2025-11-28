@@ -1,0 +1,80 @@
+{{- if .Values.payment.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-conf
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: payment
+data:
+  conf.yaml: |
+    kitex:
+      service: "{{ .Values.payment.kitex.service }}"
+      address: "{{ .Values.payment.kitex.address }}"
+      metrics_port: "{{ .Values.payment.kitex.metrics_port }}"
+      log_level: {{ .Values.payment.kitex.log_level }}
+    mysql:
+      dsn: "{{ .Values.payment.mysql.dsn }}"
+      username: {{ .Values.payment.mysql.username | quote }}
+      password: {{ .Values.payment.mysql.password | quote }}
+      address: {{ .Values.payment.mysql.address | quote }}
+      port: {{ .Values.payment.mysql.port }}
+      database: {{ .Values.payment.mysql.database | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: payment
+spec:
+  replicas: {{ .Values.payment.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "gomall.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: payment
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "gomall.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: payment
+    spec:
+      containers:
+      - name: payment
+        image: "{{ .Values.payment.image.repository }}:{{ .Values.payment.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.payment.service.targetPort }}
+        env:
+        - name: GO_ENV
+          value: {{ .Values.global.goEnv | quote }}
+        volumeMounts:
+        - name: conf
+          mountPath: /app/conf/{{ .Values.global.goEnv }}/conf.yaml
+          subPath: conf.yaml
+      volumes:
+      - name: conf
+        configMap:
+          name: payment-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  labels:
+    {{- include "gomall.labels" . | nindent 4 }}
+    app.kubernetes.io/component: payment
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.payment.service.port }}
+    targetPort: {{ .Values.payment.service.targetPort }}
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: {{ include "gomall.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: payment
+{{- end }}
