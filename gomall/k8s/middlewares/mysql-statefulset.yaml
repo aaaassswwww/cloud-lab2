@@ -22,13 +22,22 @@ spec:
         - containerPort: 3306
         env:
         - name: MYSQL_ROOT_PASSWORD
-          value: "root123"
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-root-password
         - name: MYSQL_DATABASE
           value: "gomall"
         - name: MYSQL_USER
-          value: "gomall"
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-user
         - name: MYSQL_PASSWORD
-          value: "gomall123"
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-password
         volumeMounts:
         - name: mysql-data
           mountPath: /var/lib/mysql

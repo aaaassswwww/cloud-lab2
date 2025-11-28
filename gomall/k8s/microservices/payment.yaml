@@ -36,6 +36,7 @@ spec:
       containers:
       - name: payment
         image: buwandocker/payment:lab2
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8886
         env:
@@ -49,6 +50,31 @@ spec:
       - name: conf
         configMap:
           name: payment-conf
+      initContainers:
+      - name: init-db
+        image: mysql:8.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MYSQL_HOST
+          value: "mysql"
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-root-password
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-password
+        command:
+        - sh
+        - -c
+        - |
+          until mysql -h ${MYSQL_HOST} -uroot -p${MYSQL_ROOT_PASSWORD} -e 'select 1' >/dev/null 2>&1; do
+            sleep 2
+          done
+          mysql -h ${MYSQL_HOST} -uroot -p${MYSQL_ROOT_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS \`payment\` DEFAULT CHARACTER SET utf8mb4; CREATE USER IF NOT EXISTS 'gomall'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}'; GRANT ALL PRIVILEGES ON \`payment\`.* TO 'gomall'@'%'; FLUSH PRIVILEGES;"
 ---
 apiVersion: v1
 kind: Service
