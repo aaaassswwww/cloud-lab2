@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  namespace: gomall
+  labels:
+    app: product
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+    spec:
+      containers:
+      - name: product
+        image: buwandocker/product:lab2
+        ports:
+        - containerPort: 8881
+          name: grpc
+        - containerPort: 9991
+          name: metrics
+        volumeMounts:
+        - name: config
+          mountPath: /app/conf/dev
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: product-config

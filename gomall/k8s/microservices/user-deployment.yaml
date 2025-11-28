@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user
+  namespace: gomall
+  labels:
+    app: user
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user
+  template:
+    metadata:
+      labels:
+        app: user
+    spec:
+      containers:
+      - name: user
+        image: buwandocker/user:lab2
+        ports:
+        - containerPort: 8882
+          name: grpc
+        - containerPort: 9992
+          name: metrics
+        volumeMounts:
+        - name: config
+          mountPath: /app/conf/dev
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: user-config

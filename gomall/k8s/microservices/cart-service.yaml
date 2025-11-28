@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart
+  namespace: gomall
+  labels:
+    app: cart
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8883
+    targetPort: 8883
+    protocol: TCP
+    name: grpc
+  selector:
+    app: cart

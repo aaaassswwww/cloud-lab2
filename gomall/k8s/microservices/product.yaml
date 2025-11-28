@@ -30,6 +30,11 @@ metadata:
     app: product
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: product
@@ -44,9 +49,29 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8881
+          name: grpc
+        readinessProbe:
+          tcpSocket:
+            port: 8881
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8881
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 3
         env:
         - name: GO_ENV
           value: "dev"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         volumeMounts:
         - name: conf
           mountPath: /app/conf/dev/conf.yaml

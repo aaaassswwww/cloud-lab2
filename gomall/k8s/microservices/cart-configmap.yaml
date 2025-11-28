@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cart-config
+  namespace: gomall
+data:
+  conf.yaml: |
+    kitex:
+      service: "cart"
+      address: ":8883"
+      metrics_port: ":9993"
+      log_level: info
+      log_file_name: "log/kitex.log"
+      log_max_size: 10
+      log_max_age: 3
+      log_max_backups: 50
+
+    mysql:
+      dsn: "%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local"
+      username: root
+      password: root123
+      address: mysql.default.svc.cluster.local
+      port: 3306
+      database: cart
+
+    rate_limiter:
+      enabled: true
+      bucket_size: 10
+      rate: 7
