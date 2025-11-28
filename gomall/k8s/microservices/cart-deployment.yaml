@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart
+  namespace: gomall
+  labels:
+    app: cart
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cart
+  template:
+    metadata:
+      labels:
+        app: cart
+    spec:
+      containers:
+      - name: cart
+        image: buwandocker/cart:lab2
+        ports:
+        - containerPort: 8883
+          name: grpc
+        - containerPort: 9993
+          name: metrics
+        volumeMounts:
+        - name: config
+          mountPath: /app/conf/dev
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: cart-config

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  namespace: gomall
+  labels:
+    app: payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment
+  template:
+    metadata:
+      labels:
+        app: payment
+    spec:
+      containers:
+      - name: payment
+        image: buwandocker/payment:lab2
+        ports:
+        - containerPort: 8886
+          name: grpc
+        - containerPort: 9996
+          name: metrics
+        volumeMounts:
+        - name: config
+          mountPath: /app/conf/dev
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: payment-config

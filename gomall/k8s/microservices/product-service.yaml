@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  namespace: gomall
+  labels:
+    app: product
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8881
+    targetPort: 8881
+    protocol: TCP
+    name: grpc
+  selector:
+    app: product

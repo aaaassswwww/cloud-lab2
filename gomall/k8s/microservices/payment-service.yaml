@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  namespace: gomall
+  labels:
+    app: payment
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8886
+    targetPort: 8886
+    protocol: TCP
+    name: grpc
+  selector:
+    app: payment

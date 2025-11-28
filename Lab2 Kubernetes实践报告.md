@@ -2,7 +2,7 @@
 
 ## 1.使用minikube搭建kubernetes集群
 
-运行`minikube start --drive=docker`
+运行`minikube start --driver=docker`
 
 ![image-20251126133920563](images\image-20251126133920563.png)
 
@@ -21,7 +21,7 @@
 在集群中应用这些文件
 
 ```bash
-minikube kubectl -- apply -f gomall/k8s/middlewares; 
+minikube kubectl -- apply -f gomall/k8s/middlewares
 ```
 
 ![image-20251126134120511](images\image-20251126134120511.png)
@@ -61,15 +61,7 @@ minikube kubectl -- apply -f gomall/k8s/middlewares;
 在集群中应用微服务清单
 
 ```bash
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-pv-pvc.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-configmap.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-headless-service.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-service.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-statefulset.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\redis-deployment.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\redis-service.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-deployment.yaml
-minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-service.yaml
+minikube kubectl -- apply -f gomall\k8s\microservices
 ```
 
 ![image-20251126175135535](images\image-20251126175135535.png)
@@ -80,33 +72,166 @@ minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-service.yaml
 
 ![image-20251126181835767](images\image-20251126181835767.png)
 
-运行` minikube kubectl -- logs cart-79f7f79fd9-rcchw`查看cart 日志，发现MySQL 还没有为 cart 等服务创建数据库并且授予 gomall 对这些数据库的权限。因为 MySQL 数据存储已被 PV 持久化，重新应用 ConfigMap 不会重新初始化，所以在运行中的 MySQL 实例里手动创建数据库并授权。
+运行` minikube kubectl -- logs cart-79f7f79fd9-rcchw`查看cart 日志，发现MySQL 还没有为 cart 等服务创建数据库并且授予 gomall 对这些数据库的权限。
 
-```bash
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS cart DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS product DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS `user` DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS `order` DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE DATABASE IF NOT EXISTS payment DEFAULT CHARACTER SET utf8mb4;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "CREATE USER IF NOT EXISTS 'gomall'@'%' IDENTIFIED BY 'gomall123';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON cart.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON product.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON `user`.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON `order`.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "GRANT ALL PRIVILEGES ON payment.* TO 'gomall'@'%';"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e "FLUSH PRIVILEGES;"
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e 'CREATE DATABASE IF NOT EXISTS `order` DEFAULT CHARACTER SET utf8mb4;'
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e 'GRANT ALL PRIVILEGES ON `order`.* TO ''gomall''@''%'';'
-minikube kubectl -- exec mysql-0 -- mysql -uroot -proot123 -e 'FLUSH PRIVILEGES;';
-minikube kubectl -- rollout restart deployment cart product order payment user
-```
+优化一下
+
+- 添加 mysql-init-job.yaml，等待 MySQL 就绪并执行创建数据库与授权的 SQL。
+
+- 添加 mysql-secret.yaml 保存 MySQL 密码
 
 现在可以了
 
-![image-20251126182329937](images\image-20251126182329937.png)
+![image-20251127222625017](images\image-20251127222625017.png)
 
 运行`kubectl port-forward service/frontend 8080:8080`
 
 发现可以正常访问在 Kubernetes 集群中运行的 gomall 系统。
 
 ![image-20251126182524577](images\image-20251126182524577.png)
+
+```bash
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-secret.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-pv-pvc.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-configmap.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-headless-service.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-statefulset.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\redis-deployment.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\redis-service.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-deployment.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\nats-service.yaml;
+minikube kubectl -- apply -f .\gomall\k8s\middlewares\mysql-init-job.yaml;
+```
+
+
+# 任务四、五测试结果总结
+
+## 任务四: 在Kubernetes集群中部署gomall
+
+### 文件列表
+```
+microservices/
+├── 00-namespace.yaml            # Gomall 命名空间
+├── cart-configmap.yaml          # Cart 配置
+├── cart-deployment.yaml         # Cart 部署
+├── cart-service.yaml            # Cart 服务
+├── checkout-configmap.yaml      # Checkout 配置
+├── checkout-deployment.yaml     # Checkout 部署
+├── checkout-service.yaml        # Checkout 服务
+├── email-configmap.yaml         # Email 配置
+├── email-deployment.yaml        # Email 部署
+├── email-service.yaml           # Email 服务
+├── frontend-configmap.yaml      # Frontend 配置
+├── frontend-deployment.yaml     # Frontend 部署
+├── frontend-service.yaml        # Frontend 服务
+├── order-configmap.yaml         # Order 配置
+├── order-deployment.yaml        # Order 部署
+├── order-service.yaml           # Order 服务
+├── payment-configmap.yaml       # Payment 配置
+├── payment-deployment.yaml      # Payment 部署
+├── payment-service.yaml         # Payment 服务
+├── product-configmap.yaml       # Product 配置
+├── product-deployment.yaml      # Product 部署
+├── product-service.yaml         # Product 服务
+├── user-configmap.yaml          # User 配置
+├── user-deployment.yaml         # User 部署
+└── user-service.yaml            # User 服务
+```
+
+### 部署的微服务
+
+| 服务名称 | 端口 | 状态 | 功能 |
+|---------|------|------|------|
+| cart | 8883 | Running | 购物车管理 |
+| checkout | 8884 | Running | 结账功能 |
+| email | 8888 | Running | 邮件发送 |
+| order | 8885 | Running | 订单管理 |
+| payment | 8886 | Running | 支付功能 |
+| product | 8881 | Running | 商品管理 |
+| user | 8882 | Running | 用户管理 |
+| frontend | 8080 | Running | 前端页面 |
+
+### 部署命令记录
+
+#### 1. 创建命名空间和部署所有服务
+```bash
+kubectl apply -f gomall\k8s\microservices\
+```
+
+#### 2. 查看部署状态
+```bash
+# 查看所有 Pod
+kubectl get pods -n gomall
+
+# 查看所有 Service
+kubectl get svc -n gomall
+```
+![alt text](<images/image copy 9.png>)
+
+#### 3. 访问前端服务
+```bash
+kubectl port-forward service/frontend 8080:8080 -n gomall
+```
+
+然后在浏览器访问: http://localhost:8080
+经过测试一切服务皆正常运作
+
+![alt text](<images/image copy 10.png>)
+
+
+---
+
+## 任务五：扩缩容与负载均衡实验
+
+### 测试步骤执行记录
+
+#### 1. 初始状态确认
+- 初始副本数：1 个 Pod (`product-5454f95b79-7bxj2`)
+- 状态：Running
+
+![alt text](<images/image copy 5.png>)
+
+#### 2. 扩容操作
+```bash
+minikube kubectl -- scale deployment/product --replicas=3
+```
+![alt text](images/image.png)
+- 扩容后副本数：3 个 Pod
+  - `product-5454f95b79-7bxj2` (原有)
+  - `product-5454f95b79-rbdrk` (新增)
+  - `product-5454f95b79-wrq6b` (新增)
+
+![alt text](<images/image copy 3.png>)
+
+#### 3. Hey性能测试结果
+
+##### 扩容前
+
+![alt text](<images/image copy 6.png>)
+
+##### 扩容后
+
+![alt text](<images/image copy 7.png>)
+
+#### 4. 负载均衡验证结果
+
+通过查看三个 Pod 的日志，确认所有 Pod 都在处理请求：
+
+**Pod 1 (7bxj2)**: 日志显示大量 `ListProductsService:` 请求
+
+**Pod 2 (rbdrk)**:日志显示大量 `ListProductsService:` 请求
+
+**Pod 3 (wrq6b)**:日志显示大量 `ListProductsService:` 请求
+
+**Service 端点验证**:
+```
+Endpoints: 10.244.0.15:8881,10.244.0.17:8881,10.244.0.16:8881
+```
+三个端点都已正确注册到 Service 中，负载均衡配置生效。
+
+![alt text](<images/image copy.png>)
+![alt text](<images/image copy 2.png>)
+
+
+---
+

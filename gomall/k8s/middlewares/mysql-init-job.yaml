@@ -1,0 +1,63 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mysql-init-job
+  labels:
+    app: mysql-init
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: mysql-init
+        image: mysql:8.0
+        env:
+        - name: MYSQL_HOST
+          value: "mysql"
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-root-password
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-user
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-password
+        command:
+        - sh
+        - -c
+        - |
+          # wait until mysql is ready
+          echo "Waiting for mysql to be available..."
+          until mysql -h ${MYSQL_HOST} -uroot -p${MYSQL_ROOT_PASSWORD} -e 'select 1' >/dev/null 2>&1; do
+            sleep 2
+          done
+          echo "MySQL is up - running init SQL"
+          mysql -h ${MYSQL_HOST} -uroot -p${MYSQL_ROOT_PASSWORD} <<EOSQL
+
+          DROP USER IF EXISTS '\${MYSQL_USER}'@'%';
+          DROP USER IF EXISTS '${MYSQL_USER}'@'%';
+
+          CREATE DATABASE IF NOT EXISTS cart DEFAULT CHARACTER SET utf8mb4;
+          CREATE DATABASE IF NOT EXISTS product DEFAULT CHARACTER SET utf8mb4;
+          CREATE DATABASE IF NOT EXISTS \`user\` DEFAULT CHARACTER SET utf8mb4;
+          CREATE DATABASE IF NOT EXISTS \`order\` DEFAULT CHARACTER SET utf8mb4;
+          CREATE DATABASE IF NOT EXISTS payment DEFAULT CHARACTER SET utf8mb4;
+
+          CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+          GRANT ALL PRIVILEGES ON cart.* TO '${MYSQL_USER}'@'%';
+          GRANT ALL PRIVILEGES ON product.* TO '${MYSQL_USER}'@'%';
+          GRANT ALL PRIVILEGES ON \`user\`.* TO '${MYSQL_USER}'@'%';
+          GRANT ALL PRIVILEGES ON \`order\`.* TO '${MYSQL_USER}'@'%';
+          GRANT ALL PRIVILEGES ON payment.* TO '${MYSQL_USER}'@'%';
+          FLUSH PRIVILEGES;
+          EOSQL
+          echo "Init SQL executed"
+      nodeSelector: {}
